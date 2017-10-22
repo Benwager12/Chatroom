@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Chatroom: Guest</title>
+        <style>
+        #chat {
+            height: 500px;
+        }
+
+        .chatArea {
+            height: 100%;
+            padding-bottom: 60px;
+        }
+        </style>
+    </head>
+
+    <body>
+        <div id="chatArea">
+            <ul class="messages"></ul>
+        </div>
+        <form id="send-message">
+            <label>Enter message: </label><input size="35" id="message"></input>
+            <input type="submit" id="messageSubmitButton"></input>
+        </form>
+        <form id="send-image">
+            <label>Enter image URL: </label><input size="20" id="image-url"></input>
+            <input type="submit" id="imageSubmitButton">
+        </form>
+        <form id="change-name">
+            <label>Enter name: </label><input size="12" id="name"></input>
+            <input type="submit"></input>
+        </form>
+        <label>Your name is: </label><label id="showName">hasn't been set</label>
+        <script src="https://code.jquery.com/jquery-latest.min.js"></script>
+        <script src="/socket.io/socket.io.js"></script>
+        <script>
+            $(document).ready(function() {
+                $.person = {
+                    color: 'red',
+                    name: 'User'
+                }
+            });
+            jQuery(function($) {
+                var socket = io.connect(),
+                $messages = $('.messages'),
+                $messageForm = $('#send-message'),
+                $messageBox = $('#message'),
+                $nameForm = $('#change-name'),
+                $nameBox = $('#name'),
+                $messageSubmitButton = $('#messageSubmitButton'),
+                $imageForm = $('#send-image'),
+                $imageBox = $('#image-url'),
+                $imageSubmitButton = $('#imageSubmitButton');
+
+                $messageSubmitButton.attr("disabled", true);
+                $imageSubmitButton.attr("disabled", true);
+
+                $messageForm.submit(function(e) {
+                    e.preventDefault();
+                    socket.emit('send message', {name: $.person.name, value: $messageBox.val()});
+                    $messageBox.val('');
+                });
+
+                socket.on('new message', function(data) {
+                    name = data.name;
+                    value = data.value;
+                    if (value.trim() == "") return;
+                    $messages.append(dateString() + " <strong style=\"color:" + $.person.color +"\",font-style:bold>" + name + "</strong>: " + value + "<br>");
+                });
+
+                socket.on('person joined', function(data) {
+                    name = data.name;
+                    $messages.append(dateString() + " Welcome to the chatroom <strong>" + name + "</strong><br>");
+                });
+
+                socket.on('name change', function(data) {
+                    var prevName = data.prevName;
+                    var currentName = data.currentName;
+
+                    $messages.append(dateString() + " <strong>" + prevName + "</strong> has changed their name to <strong>" + currentName + "</strong><br>");
+                })
+
+                $nameForm.submit(function(e) {
+                    e.preventDefault();
+
+                    if ($messageSubmitButton.prop("disabled") == true) {
+                        socket.emit('person joined', {name: $nameBox.val()});
+                    } else {
+                        socket.emit('name change', {prevName: $.person.name, currentName: $nameBox.val()});
+                    }
+
+                    $messageSubmitButton.attr("disabled", false);
+                    $imageSubmitButton.attr("disabled", false);
+                    document.getElementById('showName').innerHTML = $nameBox.val();
+                    $.person.name = $nameBox.val();
+                    $(document).attr("title", "Chatroom: " + $nameBox.val());
+
+                    $nameBox.val('');
+                })
+
+                $imageForm.submit(function(e) {
+                    e.preventDefault();
+
+                    socket.emit('send image', {name: $.person.name, url: $imageBox.val()});
+                });
+
+                socket.on('send image', function(data) {
+                    $messages.append(dateString() + " <strong style=\"color:" + $.person.color +"\",font-style:bold>" + data.name + "</strong>: <img src=" + data.url + " width=100 height=100><br>")
+                });
+            });
+        function getDate() {
+            now = new Date($.now());
+
+            return {
+                hours:now.getHours(),
+                minutes:now.getMinutes(),
+                seconds:now.getSeconds()
+            }
+        }
+
+        function dateString() {
+            date = getDate();
+            return "[" + date.hours + ":" + date.minutes + ":" + date.seconds + "]";
+        }
+        </script>
+    </body>
+</html>
