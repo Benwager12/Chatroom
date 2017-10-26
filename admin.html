@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin panel</title>
+</head>
+<body>
+    <form id="messageform">
+        <input id="message"></input></input>
+        <input type="submit"></input></input>
+    </form>
+    <button id="clearchat">Clear chat</button>
+
+    <script src="https://code.jquery.com/jquery-latest.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+
+    <script>
+        jQuery(function($) {
+            var socket = io.connect();
+            $messageForm = $('#messageform');
+            $messageBox = $('#message');
+            $clearchat = $('#clearchat');
+            console.log("Hey");
+
+            $messageForm.submit(function(e) {
+                e.preventDefault();
+                socket.emit('admin message', $messageBox.val());
+            });
+
+            $clearchat.click(function() {
+                console.log("Hey clear");
+                socket.emit('set messages', "<strong style\"color=gold\">Chat cleared by an admin</strong>");
+            });
+        });
+    </script>
+</body>
+</html>
